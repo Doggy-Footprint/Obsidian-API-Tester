@@ -3,6 +3,8 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 
 export default class MyPlugin extends Plugin {
 	async onload() {
+        if (false) {
+            // postprocessing of Markdown by editing DOM object and 
 		this.registerMarkdownPostProcessor((element, context) => {
 			const tasks = element.querySelectorAll('li.task-list-item');
 		
@@ -13,9 +15,10 @@ export default class MyPlugin extends Plugin {
 					console.log('checked');
 					task.remove();
 				}
-
+                });
+                console.log(context);
 			});
-		});
+        }
 	}
 
 	onunload() {
