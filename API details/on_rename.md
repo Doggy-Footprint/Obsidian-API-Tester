@@ -74,3 +74,26 @@ rename_test/Untitled.md
 ```
 
 its all included files name are changed and call `rename` event
+
+## Programming Considerations
+
+### Will `TFile` object remain same after rename?
+```ts
+const rename_test_file = this.app.vault.getFileByPath("rename_test.md");
+if (rename_test_file && true) {
+    this.registerEvent(this.app.vault.on('rename', (rename_test_2_file, oldPath) => {
+        if (!(rename_test_2_file instanceof TFile)) return;
+        console.log('rename_test_file === rename_test_2_file: ', rename_test_file === rename_test_2_file);
+        console.log('rename_test_file object basename: ', rename_test_file.basename);
+        console.log('rename_test_2_file object basename: ', rename_test_2_file.basename);
+        console.log('----');
+    }));
+    // rename rename_test.md -> rename_test_2.md
+    /**
+     * result
+     * rename_test_file === rename_test_2_file:  true
+     * rename_test_file object basename:  rename_test_2
+     * rename_test_2_file object basename:  rename_test_2
+     */
+```
+**YES**

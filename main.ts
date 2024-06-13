@@ -1,4 +1,6 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+/* eslint-disable no-unreachable */
+
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, TAbstractFile } from 'obsidian';
 
 
 export default class MyPlugin extends Plugin {
@@ -19,13 +21,32 @@ export default class MyPlugin extends Plugin {
                 console.log(context);
             });
         }
-        if (false) {
-            // testing rename event of plugin.app.vault
-            this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
-                console.log(file);
-                console.log(oldPath);
-                console.log('---');
-            }));
+        if (true) {
+            const rename_test_file = this.app.vault.getFileByPath("rename_test.md");
+            if (rename_test_file && true) {
+                this.registerEvent(this.app.vault.on('rename', (rename_test_2_file, oldPath) => {
+                    if (!(rename_test_2_file instanceof TFile)) return;
+                    console.log('rename_test_file === rename_test_2_file: ', rename_test_file === rename_test_2_file);
+                    console.log('rename_test_file object basename: ', rename_test_file.basename);
+                    console.log('rename_test_2_file object basename: ', rename_test_2_file.basename);
+                    console.log('----');
+                }));
+                // rename rename_test.md -> rename_test_2.md
+                /**
+                 * result - same object
+                 * rename_test_file === rename_test_2_file:  true
+                 * rename_test_file object basename:  rename_test_2
+                 * rename_test_2_file object basename:  rename_test_2
+                 */
+            } else if (false) {
+                // testing rename event of plugin.app.vault
+                this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
+                    console.log(file);
+                    console.log(oldPath);
+                    console.log('---');
+                }));
+            }
+
         }
     }
 
