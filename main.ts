@@ -24,7 +24,6 @@ export default class MyPlugin extends Plugin {
         // tests about TFiles, TFolders
         if (true) {
             const DELETE_FIRST = true;
-            const CREATE_FIRST = true;
 
             console.log('Cleaning up testing files and check some behaviors')
             const event_test_dir = this.app.vault.getFolderByPath('event_test');
@@ -36,7 +35,7 @@ export default class MyPlugin extends Plugin {
                 console.log('---------');
                 // test if deleted object is used
                 // result: not related
-                if (false && !CREATE_FIRST) {
+                if (false) {
                     const new_event_test_dir = await this.app.vault.createFolder('event_test');
                     console.log('are they same objects?');
                     console.log(`event_test_dir == new_event_test_dir : ${event_test_dir == new_event_test_dir}`);
@@ -56,7 +55,7 @@ export default class MyPlugin extends Plugin {
                 console.log('---------');
                 // test if deleted object is used
                 // result: not related
-                if (false && !CREATE_FIRST) {
+                if (false) {
                     const new_event_test_file = await this.app.vault.create('event_test.md', 'abc');
                     console.log('are they same objects?');
                     console.log(`event_test_dir == new_event_test_dir : ${event_test_file == new_event_test_file}`);
@@ -78,39 +77,95 @@ export default class MyPlugin extends Plugin {
              *     └── TFile_object         check if modify, event event changes TFile object (reference)
              * event_test.md
             */
-            console.log('creating testing files');
-            if (DELETE_FIRST && CREATE_FIRST) {
-                await this.app.vault.createFolder('event_test');
-                await this.app.vault.createFolder('event_test/common_dir');
-                await this.app.vault.createFolder('event_test/common_dir/test1');
-                await this.app.vault.create('event_test/common_dir/test1/test1.md', 'test1');
-                await this.app.vault.createFolder('event_test/common_dir/test2');
-                await this.app.vault.create('event_test/common_dir/test2/test2.md', 'test2');
-                await this.app.vault.createFolder('event_test/common_dir/TFolder_object');
-                await this.app.vault.create('event_test/common_dir/TFile_object.md', 'tfile object');
-                await this.app.vault.create('event_test.md', 'event_test');
-                console.log('created test files');
-            }
 
+            
+            const test_files: string[] = [
+                'event_test', 
+                'event_test/common_dir', 
+                'event_test/common_dir/test1', 
+                'event_test/common_dir/test1/test1.md',
+                'event_test/common_dir/test2',
+                'event_test/common_dir/test2/test2.md',
+                'event_test/common_dir/TFolder_object', 
+                'event_test/common_dir/TFile_object.md',
+                'event_test.md',
+            ];
+            let test_files_and_objects: Record<string, TAbstractFile>;
+
+            this.addRibbonIcon('dice', 'reset test files', () => {
+                if (test_files_and_objects) {
+                    Object.values(test_files_and_objects).reverse().forEach(async obj => await this.app.vault.delete(obj, true));
+                }
+                test_files_and_objects = {};
+                test_files.forEach(async path => {
+                    if (path.endsWith('.md')) {
+                        test_files_and_objects[path] = await this.app.vault.create(path, path.split('.')[0]);
+                    } else {
+                        test_files_and_objects[path] = await this.app.vault.createFolder(path);
+                    }
+                });
+                new Notice("Test files generated!!");
+            });
+
+            /**
+             * test scenario
+             * move file & move folder -> rename.
+             * 
+             * rename, modify - equality(===) of TFile, TFolder object
+             * 
+             * propagation of rename, delete
+             * 
+             * delete - how to update Keyword Suggestion Plugin's Content<TFile>?
+             * can't read cache data.
+             */
             // TODO: what is `ctx?: any` on this.app.vault.on()?
-            const watch_TFolder_object = this.app.vault.getFileByPath("event_test/common_dir/TFolder_object");
-            const watch_TFile_object = this.app.vault.getFileByPath("event_test/common_dir/TFile_object");
-
             this.registerEvent(this.app.vault.on('create', obj => {
-
+                /**
+                 * When Obsidian app is loaded, 'create' is called
+                 * 
+                 * check this
+                 * If you do not wish to receive create events on vault load, register your event handler inside {@link Workspace.onLayoutReady}.
+                 */
+                console.log('create');
             }));
 
             this.registerEvent(this.app.vault.on('modify', obj => {
+                /**
+                 * cache.frontmatter?.aliases are reflected in a next modify
+                 * solution 1: use callback to read metadataCache afterward
+                 * solution 2: find API which can read cache to update before on modify ends
+                 */
 
+                console.log(`modify: ${obj.path}`);
+                if (obj instanceof TFile) {
+                    const cache = this.app.metadataCache.getFileCache(obj);
+                    if (!cache) console.log(`No cache available for ${obj.path}`);
+                    else console.log(`aliases: ${cache.frontmatter?.aliases}`);
+
+                    console.log(`aliases from pathcache: ${this.app.metadataCache.getCache(obj.path)?.frontmatter?.aliases}`);
+                }
             }));
 
             this.registerEvent(this.app.vault.on('delete', obj => {
-
+                /**
+                 * this.app.vault.delete(file) call this.
+                 * 
+                 * Can't read cache from deleted file.
+                 */
+                console.log(`delete: ${obj.path}`);
+                if (obj instanceof TFile) {
+                    const cache = this.app.metadataCache.getFileCache(obj);
+                    if (!cache) console.log(`No cache available for ${obj.path}`);
+                    else console.log(`metadataCache: ${cache.frontmatter}`);
+                }
             }));
 
             this.registerEvent(this.app.vault.on('rename', (obj, oldPath) => {
-
+                console.log(`rename ${oldPath} --> ${obj.path}`);
+                console.log(`Check equality of TAbstractFile object: ${test_files_and_objects[oldPath] === obj}`);
+                console.log(`new path(obj.path): ${obj.path}`);
             }));
+
         }
     }
 
