@@ -107,64 +107,98 @@ export default class MyPlugin extends Plugin {
                 new Notice("Test files generated!!");
             });
 
-            /**
-             * test scenario
-             * move file & move folder -> rename.
-             * 
-             * rename, modify - equality(===) of TFile, TFolder object
-             * 
-             * propagation of rename, delete
-             * 
-             * delete - how to update Keyword Suggestion Plugin's Content<TFile>?
-             * can't read cache data.
-             */
-            // TODO: what is `ctx?: any` on this.app.vault.on()?
-            this.registerEvent(this.app.vault.on('create', obj => {
+            //user's direct manipulation 
+            if (false) {
                 /**
-                 * When Obsidian app is loaded, 'create' is called
+                 * test scenario
                  * 
-                 * check this
-                 * If you do not wish to receive create events on vault load, register your event handler inside {@link Workspace.onLayoutReady}.
-                 */
-                console.log('create');
-            }));
-
-            this.registerEvent(this.app.vault.on('modify', obj => {
-                /**
-                 * cache.frontmatter?.aliases are reflected in a next modify
-                 * solution 1: use callback to read metadataCache afterward
-                 * solution 2: find API which can read cache to update before on modify ends
-                 */
-
-                console.log(`modify: ${obj.path}`);
-                if (obj instanceof TFile) {
-                    const cache = this.app.metadataCache.getFileCache(obj);
-                    if (!cache) console.log(`No cache available for ${obj.path}`);
-                    else console.log(`aliases: ${cache.frontmatter?.aliases}`);
-
-                    console.log(`aliases from pathcache: ${this.app.metadataCache.getCache(obj.path)?.frontmatter?.aliases}`);
-                }
-            }));
-
-            this.registerEvent(this.app.vault.on('delete', obj => {
-                /**
-                 * this.app.vault.delete(file) call this.
+                 * move file & folder: treated as rename (done)
                  * 
-                 * Can't read cache from deleted file.
+                 * rename, modify preserve equality of TFile, TFolder object. (done)
+                 * 
+                 * rename propagation: not DFS/BFS. seems like created time account for order (not assured) (done)
+                 * delete propagation: same order with rename(not assured) but only the highest directory comes last (done)
+                 * parent directory is deleted before its containing file is deleted.
+                 * 
+                 * delete - how to update Keyword Suggestion Plugin's Content<TFile>?
+                 * can't read cache data. (TODO)
                  */
-                console.log(`delete: ${obj.path}`);
-                if (obj instanceof TFile) {
-                    const cache = this.app.metadataCache.getFileCache(obj);
-                    if (!cache) console.log(`No cache available for ${obj.path}`);
-                    else console.log(`metadataCache: ${cache.frontmatter}`);
-                }
-            }));
+                // TODO: what is `ctx?: any` on this.app.vault.on()?
 
-            this.registerEvent(this.app.vault.on('rename', (obj, oldPath) => {
-                console.log(`rename ${oldPath} --> ${obj.path}`);
-                console.log(`Check equality of TAbstractFile object: ${test_files_and_objects[oldPath] === obj}`);
-                console.log(`new path(obj.path): ${obj.path}`);
-            }));
+                // to avoid create events on vault loading.
+                this.app.workspace.onLayoutReady(() => {
+                    this.registerEvent(this.app.vault.on('create', obj => {
+                        /**
+                         * When Obsidian app is loaded, 'create' is called
+                         */
+                        console.log('create');
+                    }));
+                });
+                this.registerEvent(this.app.vault.on('modify', obj => {
+                    /**
+                     * cache.frontmatter?.aliases are reflected in a next modify
+                     * solution 1: run async event loop to reflecting modified, deleted files
+                     * solution 2: find API which can read cache to update before on modify ends
+                     */
+
+                    console.log(`modify: ${obj.path}`);
+                    if (obj instanceof TFile) {
+                        const cache = this.app.metadataCache.getFileCache(obj);
+                        if (!cache) console.log(`No cache available for ${obj.path}`);
+                        else console.log(`aliases: ${cache.frontmatter?.aliases}`);
+
+                        console.log(`aliases from pathcache: ${this.app.metadataCache.getCache(obj.path)?.frontmatter?.aliases}`);
+                        console.log('----');
+
+                        console.log(`Check equality of TAbstractFile object: ${test_files_and_objects[obj.path] === obj}`);
+                    }
+                }));
+
+                this.registerEvent(this.app.vault.on('delete', obj => {
+                    /**
+                     * this.app.vault.delete(file) call this.
+                     * 
+                     * Can't read cache from deleted file.
+                     
+                    * solution 1: run async event loop to reflecting modified, deleted files
+                    */
+                    console.log(`delete: ${obj.path}`);
+                    if (obj instanceof TFile && false) {
+                        const cache = this.app.metadataCache.getFileCache(obj);
+                        if (!cache) console.log(`No cache available for ${obj.path}`);
+                        else console.log(`metadataCache: ${cache.frontmatter}`);
+                    }
+                }));
+
+                this.registerEvent(this.app.vault.on('rename', (obj, oldPath) => {
+                    console.log(`rename ${oldPath} --> ${obj.path}`);
+                    if (oldPath in test_files_and_objects)
+                        console.log(`Check equality of TAbstractFile object: ${test_files_and_objects[oldPath] === obj}`);
+                    console.log(`new path(obj.path): ${obj.path}`);
+                }));
+            }
+            
+            // vault manipulation via API.
+            if (true) {
+                this.app.workspace.onLayoutReady(() => {
+                    this.registerEvent(this.app.vault.on('create', obj => {
+
+                    }));
+                });
+                this.registerEvent(this.app.vault.on('modify', obj => {
+
+                }));
+
+                this.registerEvent(this.app.vault.on('delete', obj => {
+
+                }));
+
+                this.registerEvent(this.app.vault.on('rename', (obj, oldPath) => {
+                    console.log(`rename ${oldPath} --> ${obj.path}`);
+                }));
+
+            }
+
 
         }
     }
