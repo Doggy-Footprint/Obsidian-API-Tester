@@ -88,6 +88,7 @@ export default class MyPlugin extends Plugin {
                 'event_test/common_dir/test2/test2.md',
                 'event_test/common_dir/TFolder_object', 
                 'event_test/common_dir/TFile_object.md',
+                'event_test/Untitled.md',
                 'event_test.md',
             ];
             let test_files_and_objects: Record<string, TAbstractFile>;
@@ -108,7 +109,7 @@ export default class MyPlugin extends Plugin {
             });
 
             //user's direct manipulation 
-            if (false) {
+            if (true) {
                 /**
                  * test scenario
                  * 
@@ -118,12 +119,13 @@ export default class MyPlugin extends Plugin {
                  * 
                  * rename propagation: not DFS/BFS. seems like created time account for order (not assured) (done)
                  * delete propagation: same order with rename(not assured) but only the highest directory comes last (done)
-                 * parent directory is deleted before its containing file is deleted.
+                 *
+                 * note: parent directory is deleted before its containing file is deleted. Thus TAbstractFile does not
+                 * represent actual file system.
                  * 
-                 * delete - how to update Keyword Suggestion Plugin's Content<TFile>?
-                 * can't read cache data. (TODO)
+                 * delete TFile is not nullified or undefined, and not resued, but can't read cache data.
+                 * To deal with this, Content need to hold all its keywords to delete it in case.
                  */
-                // TODO: what is `ctx?: any` on this.app.vault.on()?
 
                 // to avoid create events on vault loading.
                 this.app.workspace.onLayoutReady(() => {
@@ -132,13 +134,21 @@ export default class MyPlugin extends Plugin {
                          * When Obsidian app is loaded, 'create' is called
                          */
                         console.log('create');
+                        if (obj.path in test_files_and_objects) {
+                            console.log('a Test for recreating file/dir with same name after deleting it')
+                            console.log(`is TAbstractFile object for deleted file/dir undefined?  test_files_and_objects[obj.path].path = ${test_files_and_objects[obj.path].path}`);
+                            if (test_files_and_objects[obj.path]) {
+                                console.log(`if remain, is it reused? ${obj === test_files_and_objects[obj.path]}`);
+                            }
+                        }
                     }));
                 });
                 this.registerEvent(this.app.vault.on('modify', obj => {
                     /**
-                     * cache.frontmatter?.aliases are reflected in a next modify
-                     * solution 1: run async event loop to reflecting modified, deleted files
-                     * solution 2: find API which can read cache to update before on modify ends
+                     * Modified contents are not reflected when this callback fn is called.
+                     * 
+                     * solution 1: run async event loop to reflecting modified, deleted files (V)
+                     * solution 2: find API which can read cache to update before on modify ends (X)
                      */
 
                     console.log(`modify: ${obj.path}`);
@@ -158,12 +168,11 @@ export default class MyPlugin extends Plugin {
                     /**
                      * this.app.vault.delete(file) call this.
                      * 
-                     * Can't read cache from deleted file.
-                     
-                    * solution 1: run async event loop to reflecting modified, deleted files
-                    */
+                     * Can't read cache from deleted file
+                     * solution: find Content using it's name and delete all related keywords (assuming Content has it)
+                     */
                     console.log(`delete: ${obj.path}`);
-                    if (obj instanceof TFile && false) {
+                    if (obj instanceof TFile && true) {
                         const cache = this.app.metadataCache.getFileCache(obj);
                         if (!cache) console.log(`No cache available for ${obj.path}`);
                         else console.log(`metadataCache: ${cache.frontmatter}`);
@@ -171,6 +180,9 @@ export default class MyPlugin extends Plugin {
                 }));
 
                 this.registerEvent(this.app.vault.on('rename', (obj, oldPath) => {
+                    /**
+                     * rename preserve TFile object -> no problem
+                     */
                     console.log(`rename ${oldPath} --> ${obj.path}`);
                     if (oldPath in test_files_and_objects)
                         console.log(`Check equality of TAbstractFile object: ${test_files_and_objects[oldPath] === obj}`);
@@ -179,6 +191,7 @@ export default class MyPlugin extends Plugin {
             }
             
             // vault manipulation via API.
+            // TODO: for compatibility with other plugins
             if (true) {
                 this.app.workspace.onLayoutReady(() => {
                     this.registerEvent(this.app.vault.on('create', obj => {
