@@ -1,10 +1,11 @@
 /* eslint-disable no-unreachable */
 
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, TAbstractFile } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, TAbstractFile, EditorSuggest } from 'obsidian';
 
 
 export default class MyPlugin extends Plugin {
     async onload() {
+        console.log('abc'); 
         if (false) {
             // postprocessing of Markdown by editing DOM object and 
             this.registerMarkdownPostProcessor((element, context) => {
@@ -189,30 +190,11 @@ export default class MyPlugin extends Plugin {
                     console.log(`new path(obj.path): ${obj.path}`);
                 }));
             }
-            
-            // vault manipulation via API.
-            // TODO: for compatibility with other plugins
-            if (true) {
-                this.app.workspace.onLayoutReady(() => {
-                    this.registerEvent(this.app.vault.on('create', obj => {
-
-                    }));
-                });
-                this.registerEvent(this.app.vault.on('modify', obj => {
-
-                }));
-
-                this.registerEvent(this.app.vault.on('delete', obj => {
-
-                }));
-
-                this.registerEvent(this.app.vault.on('rename', (obj, oldPath) => {
-                    console.log(`rename ${oldPath} --> ${obj.path}`);
-                }));
-
-            }
-
-
+            /**
+             * TODO: 
+             * test for vault APIs
+             * add new, completed file from outside (create with caches)
+             */
         }
     }
 
@@ -220,3 +202,8 @@ export default class MyPlugin extends Plugin {
 
     }
 }
+
+
+// export class TestEditorSuggest extends EditorSuggest {
+    
+// }
