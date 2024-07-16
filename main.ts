@@ -22,7 +22,8 @@ export default class MyPlugin extends Plugin {
                 console.log(context);
             });
         }
-        // tests about TFiles, TFolders
+
+        // tests about TFiles, TFolders and event in vault
         if (true) {
             const DELETE_FIRST = true;
 
@@ -31,7 +32,7 @@ export default class MyPlugin extends Plugin {
             if (event_test_dir && DELETE_FIRST) {
                 console.log('event_test exists');
                 this.app.vault.delete(event_test_dir, true);
-                console.log('deleted directory ---')
+                console.log('deleted directory ---');
                 console.log(event_test_dir); // still exists after deletion
                 console.log('---------');
                 // test if deleted object is used
@@ -92,13 +93,12 @@ export default class MyPlugin extends Plugin {
                 'event_test/Untitled.md',
                 'event_test.md',
             ];
-            let test_files_and_objects: Record<string, TAbstractFile>;
+            let test_files_and_objects: Record<string, TAbstractFile> = {};
 
             this.addRibbonIcon('dice', 'reset test files', () => {
                 if (test_files_and_objects) {
                     Object.values(test_files_and_objects).reverse().forEach(async obj => await this.app.vault.delete(obj, true));
                 }
-                test_files_and_objects = {};
                 test_files.forEach(async path => {
                     if (path.endsWith('.md')) {
                         test_files_and_objects[path] = await this.app.vault.create(path, path.split('.')[0]);
@@ -133,8 +133,20 @@ export default class MyPlugin extends Plugin {
                     this.registerEvent(this.app.vault.on('create', obj => {
                         /**
                          * When Obsidian app is loaded, 'create' is called
+                         * 
+                         * When called with copied note, the obsidian can't find its metadata from obj
                          */
-                        console.log('create');
+                        console.log('create event in vault');
+                        if (obj instanceof TFile) {
+                            const cache = this.app.metadataCache.getFileCache(obj);
+                            // console.log(`cache: ${cache}`);
+                            this.app.vault.read(obj).then(result => {
+                                console.log(`length of content: ${result.length}`);
+                            });
+                            
+                        }
+                        
+
                         if (obj.path in test_files_and_objects) {
                             console.log('a Test for recreating file/dir with same name after deleting it')
                             console.log(`is TAbstractFile object for deleted file/dir undefined?  test_files_and_objects[obj.path].path = ${test_files_and_objects[obj.path].path}`);
@@ -152,16 +164,16 @@ export default class MyPlugin extends Plugin {
                      * solution 2: find API which can read cache to update before on modify ends (X)
                      */
 
-                    console.log(`modify: ${obj.path}`);
+                    console.log(`modify event in vault: ${obj.path}`);
                     if (obj instanceof TFile) {
                         const cache = this.app.metadataCache.getFileCache(obj);
                         if (!cache) console.log(`No cache available for ${obj.path}`);
                         else console.log(`aliases: ${cache.frontmatter?.aliases}`);
-
-                        console.log(`aliases from pathcache: ${this.app.metadataCache.getCache(obj.path)?.frontmatter?.aliases}`);
+                        console.log(`aliases from path: ${this.app.metadataCache.getCache(obj.path)?.frontmatter?.aliases}`);
                         console.log('----');
 
-                        console.log(`Check equality of TAbstractFile object: ${test_files_and_objects[obj.path] === obj}`);
+                        if (obj.path in test_files_and_objects)
+                            console.log(`Check equality of TAbstractFile object: ${test_files_and_objects[obj.path] === obj}`);
                     }
                 }));
 
@@ -172,7 +184,7 @@ export default class MyPlugin extends Plugin {
                      * Can't read cache from deleted file
                      * solution: find Content using it's name and delete all related keywords (assuming Content has it)
                      */
-                    console.log(`delete: ${obj.path}`);
+                    console.log(`delete event in vault: ${obj.path}`);
                     if (obj instanceof TFile && true) {
                         const cache = this.app.metadataCache.getFileCache(obj);
                         if (!cache) console.log(`No cache available for ${obj.path}`);
@@ -184,7 +196,7 @@ export default class MyPlugin extends Plugin {
                     /**
                      * rename preserve TFile object -> no problem
                      */
-                    console.log(`rename ${oldPath} --> ${obj.path}`);
+                    console.log(`rename event in vault: ${oldPath} --> ${obj.path}`);
                     if (oldPath in test_files_and_objects)
                         console.log(`Check equality of TAbstractFile object: ${test_files_and_objects[oldPath] === obj}`);
                     console.log(`new path(obj.path): ${obj.path}`);
@@ -195,6 +207,54 @@ export default class MyPlugin extends Plugin {
              * test for vault APIs
              * add new, completed file from outside (create with caches)
              */
+
+            if (true) {
+                this.registerEvent(this.app.metadataCache.on('changed', (file, data, cache) => {
+                    /**
+                     * called when metadataCache is updated with latest cache
+                     * NOTE: not called for rename!
+                     */
+                    console.log(
+`changed event in metadataCache: 
+file: ${file.path}
+data length: ${data.length}
+cache?: ${cache !== null && cache !== undefined}
+`
+                    );
+                    console.log(`cache.tags: ${cache.frontmatter?.tags}`);
+                }));
+
+                this.registerEvent(this.app.metadataCache.on('deleted', (file, prevCache) => {
+                    /**
+                     * called when a file is delted
+                     */
+                    console.log(
+`deleted event in metadataCache:
+file: ${file.path}
+prevCache?: ${prevCache !== null && prevCache !== undefined}
+`
+                    );
+                    console.log(`prevCache.tags: ${prevCache?.frontmatter?.tags}`);
+                }));
+
+                this.registerEvent(this.app.metadataCache.on('resolve', (file) => {
+                    /**
+                     * Not sure, but not needed
+                     */
+                    console.log(
+`resolve event in metadataCache:
+file: ${file.path}
+`
+                    );
+                }));
+
+                this.registerEvent(this.app.metadataCache.on('resolved', () => {
+                    /**
+                     * Not sure, but not needed
+                     */
+                    console.log('resolved event in metadataCache');
+                }));
+            }
         }
     }
 
