@@ -197,6 +197,14 @@ export default class MyPlugin extends Plugin {
                      * rename preserve TFile object -> no problem
                      */
                     console.log(`rename event in vault: ${oldPath} --> ${obj.path}`);
+                    
+                    if (obj instanceof TFile) {
+                        const tags = this.app.metadataCache.getFileCache(obj)?.frontmatter?.tags;
+                        if (Array.isArray(tags)) {
+                            console.log(`tags: ${tags.join(', ')}`);
+                        }
+                    }
+
                     if (oldPath in test_files_and_objects)
                         console.log(`Check equality of TAbstractFile object: ${test_files_and_objects[oldPath] === obj}`);
                     console.log(`new path(obj.path): ${obj.path}`);
